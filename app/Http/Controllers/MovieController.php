@@ -88,9 +88,7 @@ class MovieController extends Controller
         // Jika ada file baru, upload & hapus foto lama
         if ($request->hasFile('foto_sampul')) {
             // Hapus foto lama
-            if (File::exists(public_path('images/' . $movie->foto_sampul))) {
-                File::delete(public_path('images/' . $movie->foto_sampul));
-            }
+            $this->deleteCoverImage($movie->foto_sampul);
     
             $fileName = $this->uploadCoverImage($request);
             $movie->foto_sampul = $fileName;
@@ -113,13 +111,19 @@ class MovieController extends Controller
         $movie = Movie::findOrFail($id);
 
         // Delete the movie's photo if it exists
-        if (File::exists(public_path('images/' . $movie->foto_sampul))) {
-            File::delete(public_path('images/' . $movie->foto_sampul));
-        }
+        $this->deleteCoverImage($movie->foto_sampul);
 
         // Delete the movie record from the database
         $movie->delete();
 
         return redirect('/movies/data')->with('success', 'Data berhasil dihapus');
+    }
+
+    private function deleteCoverImage(string $filename): void
+    {
+        $path = public_path('images/' . $filename);
+        if (File::exists($path)) {
+            File::delete($path);
+        }
     }
 }
