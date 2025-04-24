@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
+use App\Http\Requests\UpdateMovieRequest;
 
 class MovieController extends Controller
 {
@@ -80,62 +81,30 @@ class MovieController extends Controller
         return view('form-edit', compact('movie', 'categories'));
     }
 
-    public function update(Request $request, $id)
+    public function update(UpdateMovieRequest $request, $id)
     {
-        // Validasi data
-        $validator = Validator::make($request->all(), [
-            'judul' => 'required|string|max:255',
-            'category_id' => 'required|integer',
-            'sinopsis' => 'required|string',
-            'tahun' => 'required|integer',
-            'pemain' => 'required|string',
-            'foto_sampul' => 'image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        ]);
-
-        // Jika validasi gagal, kembali ke halaman edit dengan pesan kesalahan
-        if ($validator->fails()) {
-            return redirect("/movies/edit/{$id}")
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        // Ambil data movie yang akan diupdate
         $movie = Movie::findOrFail($id);
-
-        // Jika ada file yang diunggah, simpan file baru
+    
+        // Jika ada file baru, upload & hapus foto lama
         if ($request->hasFile('foto_sampul')) {
-            $randomName = Str::uuid()->toString();
-            $fileExtension = $request->file('foto_sampul')->getClientOriginalExtension();
-            $fileName = $randomName . '.' . $fileExtension;
-
-            // Simpan file foto ke folder public/images
-            $request->file('foto_sampul')->move(public_path('images'), $fileName);
-
-            // Hapus foto lama jika ada
+            // Hapus foto lama
             if (File::exists(public_path('images/' . $movie->foto_sampul))) {
                 File::delete(public_path('images/' . $movie->foto_sampul));
             }
-
-            // Update record di database dengan foto yang baru
-            $movie->update([
-                'judul' => $request->judul,
-                'sinopsis' => $request->sinopsis,
-                'category_id' => $request->category_id,
-                'tahun' => $request->tahun,
-                'pemain' => $request->pemain,
-                'foto_sampul' => $fileName,
-            ]);
-        } else {
-            // Jika tidak ada file yang diunggah, update data tanpa mengubah foto
-            $movie->update([
-                'judul' => $request->judul,
-                'sinopsis' => $request->sinopsis,
-                'category_id' => $request->category_id,
-                'tahun' => $request->tahun,
-                'pemain' => $request->pemain,
-            ]);
+    
+            $fileName = $this->uploadCoverImage($request);
+            $movie->foto_sampul = $fileName;
         }
-
+    
+        // Update data lainnya
+        $movie->judul = $request->judul;
+        $movie->category_id = $request->category_id;
+        $movie->sinopsis = $request->sinopsis;
+        $movie->tahun = $request->tahun;
+        $movie->pemain = $request->pemain;
+    
+        $movie->save();
+    
         return redirect('/movies/data')->with('success', 'Data berhasil diperbarui');
     }
 
