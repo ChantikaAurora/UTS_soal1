@@ -57,7 +57,7 @@ class MovieController extends Controller
         return redirect('/')->with('success', 'Data berhasil disimpan');
     }
 
-    private function uploadCoverImage(StoreMovieRequest $request): string
+    private function uploadCoverImage(Request $request): string
     {
         $randomName = Str::uuid()->toString();
         $fileExtension = 'jpg'; // bisa juga pakai getClientOriginalExtension()
